@@ -1,11 +1,81 @@
-# CreditGraph — Smart Contracts
+<div align="center">
 
-The on-chain credit-identity and undercollateralized lending protocol for the
-global unbanked. This folder contains the full Solidity contract suite, deploy
-scripts, and configuration.
+# CreditGraph
 
-All contracts target **Solidity 0.8.24** and were compile-verified against
-**OpenZeppelin Contracts v5.0.2**.
+**The onchain credit identity layer for 1.4 billion people that traditional credit bureaus have never heard of.**
+
+[Live app](https://creditgraph-fe-9a4ee699162b.herokuapp.com/) · [Backend](https://github.com/oadeniran/CreditGraph-BackEnd) · [Frontend](https://github.com/oadeniran/CreditGraph-FrontEnd)
+
+</div>
+
+---
+
+---
+
+## The problem
+
+1.4 billion adults globally have no credit score. In Sub-Saharan Africa alone,
+more than 70% of adults lack a formal credit history despite having active
+financial lives — mobile money flows, market trade, rotating savings groups
+(Ajo, Esusu, Chama). Traditional credit bureaus (Equifax, TransUnion,
+CreditRegistry, CRC) can't see this activity.
+
+DeFi hasn't solved this either. Existing on-chain lending requires 150%+
+collateral, which is meaningless for someone who needs credit precisely because
+they lack collateral.
+
+## What CreditGraph builds
+
+CreditGraph is a **permissionless, portable, soulbound credit identity** for
+emerging-market borrowers, powered by three layers:
+
+1. **An on-chain credit identity** issued as a non-transferable ERC-5192 token.
+2. **An AI agent network** that aggregates alternative data signals (mobile
+   money patterns, on-chain activity, social attestations) into a verifiable
+   credit score, with privacy preserved via zero-knowledge proofs.
+3. **An undercollateralized lending market** that issues MUSD micro-loans
+   against that score, with rates dynamically priced to the borrower's risk
+   tier.
+
+## What makes it novel
+
+| | What it means | Why no one else has it |
+|---|---|---|
+| **Social attestation graph** | Members of verifiable savings groups (Ajo, Esusu, Chama) attest to each other's credit behavior via real, bonded MUSD escrow. Attestation weight scales with the attester's own tier. Defaults slash attesters. | Western credit systems have no analog. No on-chain protocol encodes the social graph as a credit signal. |
+| **ZK-verified alternative data** | Mobile money inflow regularity, airtime top-up patterns, and merchant diversity are proven via ZK without revealing raw transactions. | Comparable protocols require raw Plaid / Credit Karma access. The data sources they use don't exist in emerging markets. |
+| **Portable soulbound score** | Score is infrastructure, not a product. Any protocol can read `ScoreRegistry` and underwrite against it. | Comparable credit scores are closed and used only by their own protocol. CreditGraph is a public good — credit infrastructure other DeFi protocols build on. |
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     USER / BORROWER LAYER                    │
+│           Mobile app · WhatsApp bot · Web frontend           │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────┐
+│                     AGENT NETWORK LAYER                      │
+│   Data collector → Underwriting quorum → Recovery agent      │
+│              x402 micropayments between agents               │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────┐
+│              SMART CONTRACT LAYER (Mezo)                     │
+│                                                              │
+│    Identity ── Score ── Attestation ── ZK Verifier           │
+│         │        │           │              │                │
+│         └────────┴───────────┴──────────────┘                │
+│                        │                                     │
+│                Credit Limit Engine                           │
+│                        │                                     │
+│         Lending Pool ── Loan Manager ── Slasher              │
+│                        │                                     │
+│              Treasury · Insurance Fund                       │
+└──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+              Bitcoin-backed MUSD economy (Mezo)
+```
 
 ---
 
@@ -56,8 +126,9 @@ contracts/
 │   ├── crosschain/          # RobinhoodScoreMirror
 │   └── mocks/               # MockMUSD (local/demo only)
 ├── script/
-│   ├── Deploy.s.sol             # Full protocol -> Mezo
-│   └── DeployRobinhoodMirror.s.sol  # Mirror -> Robinhood Chain
+│   ├── Deploy.s.sol                  # Full protocol -> Mezo
+│   ├── DeployRobinhoodMirror.s.sol   # Mirror -> Robinhood Chain
+│   └── GrantAllRoles.s.sol           # Grant protocol roles post-deploy
 ├── foundry.toml
 └── remappings.txt
 ```
@@ -143,23 +214,6 @@ post-deploy setter, and grants every required role (see checklist below).
 Omit `MUSD` to deploy an 18-decimal `MockMUSD` and exercise the full protocol
 without a network.
 
-### Arbitrum / other EVM chains
-
-The protocol is chain-agnostic: point `--rpc-url` at any EVM chain and set
-`MUSD` to that chain's stablecoin. Arbitrum Sepolia (`421614`) was used during
-early development.
-
-### Robinhood Chain (mirror)
-
-```bash
-export PRIVATE_KEY=0x...
-export ROBINHOOD_RPC=...                 # via Alchemy Robinhood Chain Testnet
-export BRIDGE_ENDPOINT=0x...             # LayerZero/CCIP receiver (defaults to deployer)
-export SOURCE_CHAIN_ID=42161             # Arbitrum One
-
-forge script script/DeployRobinhoodMirror.s.sol:DeployRobinhoodMirror \
-  --rpc-url $ROBINHOOD_RPC --broadcast
-```
 
 ---
 
