@@ -25,6 +25,7 @@ arbitrum_one = "${ARB_ONE_RPC}"
 arbitrum_sepolia = "${ARB_SEPOLIA_RPC}"
 robinhood = "${ROBINHOOD_RPC}"
 elysium_testnet = "${ELYSIUM_TESTNET_RPC_URL}"
+mezo_testnet = "${MEZO_TESTNET_RPC_URL}"
 
 [etherscan]
 arbitrum_one = { key = "${ETHERSCAN_API_KEY}", chain = 42161 }
